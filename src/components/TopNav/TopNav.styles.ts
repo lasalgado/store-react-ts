@@ -63,5 +63,18 @@ export const useStyles = makeStyles((theme: Theme) =>
         display: 'none',
       },
     },
+    barInfo: {
+      borderRadius: 'unset',
+      "& span.MuiIconButton-label": {
+        alignItems: 'center',
+        justifyContent: 'flex-end'
+      },
+      "& .username": {
+        paddingLeft: theme.spacing(0.5)
+      }
+    },
+    loginMobile: {
+      justifyContent: "center"
+    },
   }),
 );

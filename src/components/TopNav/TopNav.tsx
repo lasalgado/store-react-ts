@@ -1,22 +1,38 @@
 import React from 'react';
+import { useState, useEffect } from "react";
+import { useAppDispatch, useAppSelector } from "../../hooks/hooks";
+import { useHistory } from "react-router-dom";
 import AppBar from '@material-ui/core/AppBar';
 import Toolbar from '@material-ui/core/Toolbar';
+import Button from '@material-ui/core/Button';
 import IconButton from '@material-ui/core/IconButton';
 import Typography from '@material-ui/core/Typography';
 import Badge from '@material-ui/core/Badge';
 import MenuItem from '@material-ui/core/MenuItem';
 import Menu from '@material-ui/core/Menu';
 import AccountCircle from '@material-ui/icons/AccountCircle';
-import NotificationsIcon from '@material-ui/icons/Notifications';
 import MoreIcon from '@material-ui/icons/MoreVert';
 import StorefrontIcon from '@material-ui/icons/Storefront';
 import ShoppingCartIcon from '@material-ui/icons/ShoppingCart';
 import { useStyles } from "./TopNav.styles";
+import { clearAuth, setAuth } from "../../redux/authSlice";
+import { getAuthData } from "../../redux/selectors/auth.selector";
+import {
+    Auth,
+    getLocalAuth,
+    removeLocalAuth
+} from "../../utils/utils";
+
 
 function TopNav() {
     const classes = useStyles();
     const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
     const [mobileMoreAnchorEl, setMobileMoreAnchorEl] = React.useState<null | HTMLElement>(null);
+
+    const history = useHistory();
+    const dispatch = useAppDispatch();
+    const [loggedIn, setLoggedIn] = useState(false);
+    const authData = useAppSelector(getAuthData);
 
     const isMenuOpen = Boolean(anchorEl);
     const isMobileMenuOpen = Boolean(mobileMoreAnchorEl);
@@ -38,6 +54,15 @@ function TopNav() {
         setMobileMoreAnchorEl(event.currentTarget);
     };
 
+    const handleLoginButton = () => history.push('/login');
+
+    const handleLogoutButton = () => {
+        dispatch(clearAuth());
+        removeLocalAuth();
+        setAnchorEl(null);
+        handleMobileMenuClose();
+    };
+
     const menuId = 'primary-search-account-menu';
     const renderMenu = (
         <Menu
@@ -49,7 +74,7 @@ function TopNav() {
             open={isMenuOpen}
             onClose={handleMenuClose}
         >
-            <MenuItem onClick={handleMenuClose}>Logout</MenuItem>
+            <MenuItem onClick={handleLogoutButton}>Logout</MenuItem>
         </Menu>
     );
 
@@ -65,26 +90,63 @@ function TopNav() {
             onClose={handleMobileMenuClose}
         >
             <MenuItem>
-                <IconButton aria-label="show 11 new notifications" color="inherit">
-                    <Badge badgeContent={11} color="secondary">
-                        <NotificationsIcon />
+                <IconButton aria-label="show added articles" color="inherit">
+                    <Badge color="secondary">
+                        <ShoppingCartIcon />
                     </Badge>
                 </IconButton>
-                <p>Notifications</p>
+                <p>Cart</p>
             </MenuItem>
-            <MenuItem onClick={handleProfileMenuOpen}>
-                <IconButton
-                    aria-label="account of current user"
-                    aria-controls="primary-search-account-menu"
-                    aria-haspopup="true"
-                    color="inherit"
-                >
-                    <AccountCircle />
-                </IconButton>
-                <p>Profile</p>
+            <MenuItem onClick={loggedIn ? handleProfileMenuOpen : handleLoginButton}
+                className={loggedIn ? '' : classes.loginMobile}
+            >
+                {!loggedIn && 'Login'}
+                {loggedIn &&
+                    <>
+                        <IconButton
+                            edge="end"
+                            aria-label="account of current user"
+                            aria-controls={menuId}
+                            aria-haspopup="true"
+                            onClick={handleProfileMenuOpen}
+                            color="inherit"
+                            className={classes.barInfo}
+                        >
+                            <AccountCircle />
+                            {authData.user &&
+                                <Typography variant="button" display="block" className="username" >
+                                    {authData.user.displayName}
+                                </Typography>
+                            }
+                        </IconButton>
+                    </>
+                }
             </MenuItem>
         </Menu>
     );
+
+
+    useEffect(() => {
+        let logged = false;
+
+        if (!authData.user && !authData.token) {
+            let auth: Auth | null = getLocalAuth();
+
+            if (auth && auth.token && auth.user) {
+                dispatch(setAuth(auth));
+                logged = true;
+            } else {
+                logged = false;
+                handleLogoutButton();
+            }
+        } else {
+            logged = true;
+        }
+
+        setLoggedIn(logged);
+        // eslint-disable-next-line 
+    }, [authData, dispatch])
+
 
     return (
         <div className={classes.grow}>
@@ -98,21 +160,36 @@ function TopNav() {
                     </Typography>
                     <div className={classes.grow} />
                     <div className={classes.sectionDesktop}>
-                        <IconButton aria-label="show 17 new notifications" color="inherit">
-                            <Badge badgeContent={17} color="secondary">
+                        <IconButton aria-label="show added articles" color="inherit">
+                            <Badge color="secondary">
                                 <ShoppingCartIcon />
                             </Badge>
                         </IconButton>
-                        <IconButton
-                            edge="end"
-                            aria-label="account of current user"
-                            aria-controls={menuId}
-                            aria-haspopup="true"
-                            onClick={handleProfileMenuOpen}
-                            color="inherit"
-                        >
-                            <AccountCircle />
-                        </IconButton>
+                        {!loggedIn &&
+                            <Button color="inherit" onClick={handleLoginButton}>
+                                Login
+                            </Button>
+                        }
+                        {loggedIn &&
+                            <>
+                                <IconButton
+                                    edge="end"
+                                    aria-label="account of current user"
+                                    aria-controls={menuId}
+                                    aria-haspopup="true"
+                                    onClick={handleProfileMenuOpen}
+                                    color="inherit"
+                                    className={classes.barInfo}
+                                >
+                                    <AccountCircle />
+                                    {authData.user &&
+                                        <Typography variant="button" display="block" className="username" >
+                                            {authData.user.displayName}
+                                        </Typography>
+                                    }
+                                </IconButton>
+                            </>
+                        }
                     </div>
                     <div className={classes.sectionMobile}>
                         <IconButton

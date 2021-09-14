@@ -1,6 +1,6 @@
 import { FC } from 'react'
 import { useHistory } from "react-router-dom";
-import { Avatar, Box, Button, Container, Paper, Typography } from '@material-ui/core';
+import { Avatar, Button, Container, Paper, Typography } from '@material-ui/core';
 import { useStyles } from './NotFound.styles';
 import StorefrontOutlinedIcon from '@material-ui/icons/StorefrontOutlined';
 
