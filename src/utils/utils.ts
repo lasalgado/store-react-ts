@@ -175,6 +175,27 @@ export const expirationDateValidator = (value: string): { valid: boolean, msg: s
     return { valid, msg };
 };
 
+/**
+ * Performs validation over the value received checking for a valid username.
+ * 
+ * @param {string} value Value to be tested valid for a username.
+ * @returns Return an object with valid flag and message.
+ */
+export const usernameValidator = (value: string): { valid: boolean, msg: string | null } => {
+    let valid = false, msg = null;
+
+    if (!value) {
+        msg = "This field is required.";
+    }
+
+    if (!valid && !value.match(displayNameRegex)) {
+        msg = "Username not valid. Use alphanumeric values up to 15 characters.";
+    } else {
+        valid = true;
+    }
+
+    return { valid, msg };
+};
 
 /// END OF REFACTORED ELEMENTS TO TYPESCRIPT OR REWRITTING OF FUNCTIONS
 
@@ -243,27 +264,7 @@ export const expirationDateValidator = (value: string): { valid: boolean, msg: s
 //     localStorage.removeItem(USER_DATA);
 // }
 
-// /**
-//  * Performs validation over the value received checking for a valid username.
-//  * 
-//  * @param {string} value Value to be tested valid for a username.
-//  * @returns Return an object with valid flag and message.
-//  */
-// // export const usernameValidator = (value) => {
-// //     let valid = false, msg = null;
 
-// //     if (!value) {
-// //         msg = "This field is required.";
-// //     }
-
-// //     if (!valid && !value.match(displayNameRegex)) {
-// //         msg = "Username not valid. Use alphanumeric values up to 15 characters.";
-// //     } else {
-// //         valid = true;
-// //     }
-
-// //     return { valid, msg };
-// // };
 
 
 // /**

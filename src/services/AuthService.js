@@ -13,12 +13,9 @@ const AuthService = {
          if (response.status === 200) return data;
          return { hasError: true, message: response.statusText}
     },
-    signup: async (payload) => {
-        const response = await API.post(`${STORE_END_POINT.REGISTER}`, payload);
-        const { data } = response;
-        if (response.status === 201) return data;
-        return { hasError: true, message: response.statusText}
-        
+    signup: (payload) => {
+        return API.post(`${STORE_END_POINT.REGISTER}`, payload)
+                .then(response => response.data);
     }
 };
 

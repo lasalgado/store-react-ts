@@ -1,6 +1,9 @@
-import { useState, SyntheticEvent } from 'react';
+import { FC, SyntheticEvent } from 'react';
+import { useForm, FormProps } from "../../hooks/useForm";
+import { useAppDispatch } from "../../hooks/hooks";
 import { useHistory } from "react-router-dom";
-import Alert from '@material-ui/lab/Alert';
+import { setDisplayModal } from '../../redux/rootSlice';
+import { setAuth } from "../../redux/authSlice";
 import Avatar from '@material-ui/core/Avatar';
 import Button from '@material-ui/core/Button';
 import CssBaseline from '@material-ui/core/CssBaseline';
@@ -9,152 +12,136 @@ import StorefrontOutlinedIcon from '@material-ui/icons/StorefrontOutlined';
 import TextField from '@material-ui/core/TextField';
 import Typography from '@material-ui/core/Typography';
 import Container from '@material-ui/core/Container';
+import Alert from '../../components/Alert/Alert';
 import useStyles from './SignUp.style';
-// import { setToken, setUser } from "../../redux/authSlice";
-// import AuthService from '../../services/AuthService';
-// import { useDispatch } from "react-redux";
+import AuthService from '../../services/AuthService';
 
-// import {
-//   setLocalToken,
-//   setLocalUser,
-//   usernameValidator,
-//   emailValidator,
-//   passwordValidator,
-//   validForm,
-//   getFormErrors
-// } from '../../utils/utils';
+import {
+  setLocalAuth,
+  emailValidator,
+  passwordValidator,
+  usernameValidator
+} from '../../utils/utils';
 
-// const formInfo = {
-//   display_name: {
-//     id: "id_display_name",
-//     value: "",
-//     error: null,
-//     validator: usernameValidator
-//   },
-//   email: {
-//     id: "id_email",
-//     value: "",
-//     error: null,
-//     validator: emailValidator
-//   },
-//   password: {
-//     id: "id_password",
-//     value: "",
-//     error: null,
-//     validator: passwordValidator
-//   }
-// };
+const formInfo: FormProps = {
+  display_name: {
+    id: "id_display_name",
+    value: "",
+    error: null,
+    required: true,
+    validator: usernameValidator
+  },
+  email: {
+    id: "id_email",
+    value: "",
+    error: null,
+    required: true,
+    validator: emailValidator
+  },
+  password: {
+    id: "id_password",
+    value: "",
+    error: null,
+    required: true,
+    validator: passwordValidator
+  }
+};
 
-const alertInit = {
-  formAlertOpen: false,
-  type: '',
-  text: '',
-}
-
-const SignUp = () => {
+const SignUp: FC = () => {
   const classes = useStyles();
   const history = useHistory();
-  // const dispatch = useDispatch();
-  // const [currentForm, setCurrentForm] = useState(formInfo);
-  const [alertInfo, setAlertInfo] = useState(alertInit);
-
-  const closeAlert = () => {
-    setTimeout(() => {
-      onCloseAlertForm();
-    }, 600);
-  }
-
-  const onCloseAlertForm = () => {
-    setAlertInfo({
-      formAlertOpen: false,
-      type: '', 
-      text: ''
-    });
-  }
+  const {
+    form,
+    handleInputValue,
+    isValidForm,
+    getFormData
+  } = useForm(formInfo);
+  const dispatch = useAppDispatch();
 
   const handleFormSubmit = async (event: SyntheticEvent) => {
     event.preventDefault();
 
-    // if (validForm(currentForm)) {
-    //   try {
-    //     let token_data = await AuthService.signup({
-    //       email: currentForm.email.value,
-    //       displayName: currentForm.display_name.value,
-    //       password: currentForm.password.value,
-    //     });
+    if (isValidForm) {
+      let {
+        email,
+        display_name: displayName,
+        password
+      } = getFormData();
 
-    //     console.log(token_data);
+      try {
+        let token_data = await AuthService.signup({
+          email,
+          displayName,
+          password
+        });
 
-    //     let user_data = await AuthService.get_user({
-    //       headers: {'x-auth-token': token_data.data.token },
-    //     });
+        let user_data = await AuthService.get_user({
+          headers: { 'x-auth-token': token_data.data.token },
+        });
 
-    //     console.log(user_data);
-        
-    //     if(token_data.data.token && user_data.data){
-    //       dispatch(setToken(token_data.data.token));
-    //       dispatch(setUser(user_data.data));
-    //       setLocalToken(token_data.data.token);
-    //       setLocalUser(user_data.data);
-    //     }
-    //     setAlertInfo({ formAlertOpen: true, type: 'success', text: 'Redirecting...'});
-    //     closeAlert();
-    //     history.push('/');
-    //   } catch (error) {
-    //     if (error.response && error.response.status === 400
-    //       && !error.response.data.success
-    //       && error.response.data.message === "email already registered!") {
-    //         setAlertInfo({ formAlertOpen: true, type: 'error', text: 'Email already registered!'});
-    //         closeAlert();
-    //     } else {
-    //       setAlertInfo({ formAlertOpen: true, type: 'error', text: 'An error ocurred while logging in, please try again!'});
-    //       closeAlert();
-    //     }
-    //   }
-    // } else {
-    //   setAlertInfo({ formAlertOpen: true, type: 'error', text: getFormErrors(currentForm)});
-    //   closeAlert();
-    // }
+        if (token_data.data.token && user_data.data) {
+          let authInfo = {
+            user: { ...user_data.data },
+            token: token_data.data.token
+          };
+          setLocalAuth(authInfo);
+          dispatch(setAuth(authInfo));
+        }
 
+        history.push('/');
+
+      } catch (error) {
+        let textMessage = "";
+
+        if (error) {
+          let { status, data }: any = error;
+
+          if (status === 400 && !data.success && data.message === "email already registered!") {
+            textMessage = 'Email already registered!';
+          } else {
+            textMessage = 'An error ocurred while logging in, please try again!';
+          }
+        } else {
+          textMessage = 'An error ocurred while logging in, please try again!';
+        }
+
+        dispatch(setDisplayModal({
+          type: 'error',
+          state: true,
+          text: textMessage,
+          autoHideDuration: 5000
+        }));
+      }
+    } else {
+      dispatch(setDisplayModal({
+        type: 'error',
+        state: true,
+        text: "The information is invalid, please check before continuing.",
+        autoHideDuration: 5000
+      }));
+    }
   };
 
-  const handleInputValue = (event: SyntheticEvent) => {
-    // const { name, value } = event.target;
-    // setCurrentForm({
-    //   ...currentForm,
-    //   [name]: {
-    //     ...currentForm[name],
-    //     value: value,
-    //     error: currentForm[name].validator(value).msg
-    //   }
-    // });
-  };
+  const handleLinks = (event: SyntheticEvent) => {
+    const el = (event.target as HTMLElement);
+    let dataset = el.tagName === 'SPAN' ? el.parentElement?.dataset : el.dataset;
+    let name = dataset ? dataset.name : "";
 
-
-  const handleBackHome = () => {
-    history.push('/');
+    switch (name) {
+      case 'backHome':
+        history.push('/');
+        break;
+      case 'signIn':
+        history.push('/login');
+        break;
+      default:
+        return true;
+    }
   }
-
-  const handleSignInLink = () => {
-    history.push('/login');
-  }
-
 
   return (
     <Container component="main" maxWidth="xs" className={classes.signincont}>
-           {/* {alertInfo.formAlertOpen ?
-        <Alert
-          variant="filled" 
-          severity={alertInfo.type}
-          onClose={onCloseAlertForm}
-        >
-          { Array.isArray(alertInfo.text) ? 
-           alertInfo.text.map((item) => {
-           return (
-              <p>{item}</p>)
-           }) : <p>{alertInfo.text}</p> }
-        </Alert> : null
-      } */}
+      <Alert />
       <CssBaseline />
       <div className={classes.paper}>
         <Avatar className={classes.avatar}>
@@ -177,11 +164,10 @@ const SignUp = () => {
                 fullWidth
                 id="id_display_name"
                 label="Username"
-                autoFocus
-                // value={currentForm.display_name.value}
+                value={form.display_name.value}
                 onChange={handleInputValue}
                 onBlur={handleInputValue}
-                // {...(currentForm.display_name.error && { error: true, helperText: currentForm.display_name.error })}
+                {...(form.display_name.error && { error: true, helperText: form.display_name.error })}
               />
             </Grid>
             <Grid item xs={12}>
@@ -193,10 +179,10 @@ const SignUp = () => {
                 label="Email Address"
                 name="email"
                 autoComplete="email"
-                // value={currentForm.email.value}
+                value={form.email.value}
                 onChange={handleInputValue}
                 onBlur={handleInputValue}
-                // {...(currentForm.email.error && { error: true, helperText: currentForm.email.error })}
+                {...(form.email.error && { error: true, helperText: form.email.error })}
               />
             </Grid>
             <Grid item xs={12}>
@@ -209,10 +195,10 @@ const SignUp = () => {
                 type="password"
                 id="id_password"
                 autoComplete="current-password"
-                // value={currentForm.password.value}
+                value={form.password.value}
                 onChange={handleInputValue}
                 onBlur={handleInputValue}
-                // {...(currentForm.password.error && { error: true, helperText: currentForm.password.error })}
+                {...(form.password.error && { error: true, helperText: form.password.error })}
               />
             </Grid>
           </Grid>
@@ -233,7 +219,8 @@ const SignUp = () => {
                 type="button"
                 fullWidth
                 variant="contained"
-                onClick={handleSignInLink}
+                onClick={handleLinks}
+                data-name="signIn"
               >
                 Sign In
               </Button>
@@ -243,7 +230,8 @@ const SignUp = () => {
                 type="button"
                 fullWidth
                 variant="contained"
-                onClick={handleBackHome}
+                onClick={handleLinks}
+                data-name="backHome"
               >
                 Go back home
               </Button>
